@@ -287,10 +287,12 @@ const PoliticaDatos = () => {
       <div 
         className="rounded-3xl shadow-2xl overflow-hidden"
         style={{ 
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '3px solid #C7D4FF',
-          maxHeight: '45vh'
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(10px)',
+    border: '3px solid #C7D4FF',
+    maxHeight: '45vh',
+    display: 'flex',
+    flexDirection: 'column'
         }}
       >
 

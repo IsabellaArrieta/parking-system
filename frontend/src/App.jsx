@@ -4,24 +4,42 @@ import logoImage from "./assets/logo.png";
 import titleImage from "./assets/title.png";
 import HamburgerButton from "./components/menubutton";
 import Sidebar from "./components/sidebar_user";
+import SidebarAdmin from "./components/sidebar_admin";
 import NorthSpotTabs from "./components/headertabs";
 import PoliticaDatos from "./components/datainfo";
-
+import LoginModal from "./components/sesiontab";
+import DashboardAdmin from "./components/dashboardadmin";
+import GestionTarifas from './components/feemanagement';
+import Registros from './components/registers';
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
   const currentYear = new Date().getFullYear();
   const [showPolitica, setShowPolitica] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [userName, setUserName] = useState(null);
 
   const handleTabClick = (tabId) => {
-    setShowPolitica(false); 
-    setActiveTab(tabId); 
-    setIsMenuOpen(false); 
+    setShowPolitica(false);
+    setActiveTab(tabId);
+    setIsMenuOpen(false);
   };
 
   const handleLogoClick = () => {
     setActiveTab(null);
     setShowPolitica(false);
+  };
+
+  const handleLogin = (name) => {
+    setUserName(name);
+    setShowLoginModal(false);
+  };
+
+  const handleLogout = () => {
+    setUserName(null);
+    setActiveTab(null);
+    setShowPolitica(false);
+    setIsMenuOpen(false);
   };
 
   const handlePoliticaClick = () => {
@@ -30,7 +48,6 @@ function App() {
     setIsMenuOpen(false);
   };
 
-  // Obtener el título del tab activo
   const getTabTitle = () => {
     switch (activeTab) {
       case "disponibilidad":
@@ -39,6 +56,12 @@ function App() {
         return "Tarifas";
       case "informacion":
         return "Información";
+      case "dashboards":
+        return "Dashboard Administrativo";
+      case "registros":
+        return "";
+      case "gestion-tarifas":
+        return "";
       default:
         return "";
     }
@@ -52,10 +75,18 @@ function App() {
         return "Calcula el valor estimado de tu estadía";
       case "informacion":
         return "Conoce el costo de tu estacionamiento";
+      case "dashboards":
+        return "Visualiza estadísticas y métricas del parqueadero en tiempo real";
+      case "registros":
+        return "";
+      case "gestion-tarifas":
+        return "";
       default:
         return "";
     }
   };
+
+  const isAdmin = userName === "Admin";
 
   return (
     <div
@@ -74,11 +105,49 @@ function App() {
             className="w-24 h-24 object-contain hover:scale-105 transition-transform"
           />
         </button>
-        <div>
-          <HamburgerButton
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+        
+        <div 
+          className="flex items-center gap-4"
+          style={{ 
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'nowrap'
+          }}
+        >
+          {userName && (
+            <div 
+              className="px-4 py-2 rounded-full font-gasoek text-lg" 
+              style={{ 
+                color: "#FF4F79",
+                whiteSpace: 'nowrap',
+                display: 'inline-block'
+              }}
+            >
+              {userName}
+            </div>
+          )}
+          
+          <div style={{ display: 'inline-block' }}>
+            <HamburgerButton 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              isOpen={isMenuOpen} 
+            />
+          </div>
+        </div>
+        
+        {isAdmin ? (
+          <SidebarAdmin
             isOpen={isMenuOpen}
+            onClose={() => setIsMenuOpen(false)}
+            onTabClick={handleTabClick}
+            activeTab={activeTab}
+            onPoliticaClick={handlePoliticaClick}
+            showPolitica={showPolitica}
+            onLogout={handleLogout}
+            userName={userName}
           />
+        ) : (
           <Sidebar
             isOpen={isMenuOpen}
             onClose={() => setIsMenuOpen(false)}
@@ -86,13 +155,13 @@ function App() {
             activeTab={activeTab}
             onPoliticaClick={handlePoliticaClick}
             showPolitica={showPolitica}
+            onLoginClick={() => setShowLoginModal(true)}
           />
-        </div>
+        )}
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-32 z-0">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-32 z-0 overflow-y-auto">
         <div className="mb-2 text-center w-full">
-          {/* Hero original - fade out cuando hay tab activo o política */}
           {!activeTab && !showPolitica && (
             <>
               <div className="transition-all duration-700">
@@ -104,7 +173,7 @@ function App() {
               </div>
               <div className="transition-opacity duration-500">
                 <p
-                  className="font-geist text-gray-800 text-3xl font-light -mt-6 md:-mt-10 drop-shadow-lg"
+                  className="font-geist text-[#2A324B] text-3xl font-light -mt-6 md:-mt-10 drop-shadow-lg"
                   style={{ fontSize: "74.11px" }}
                 >
                   NorthSpot: Conduce. Llega. Listo.
@@ -113,8 +182,7 @@ function App() {
             </>
           )}
 
-          {/* Título cuando hay tab activo */}
-          {activeTab && !showPolitica && (
+          {activeTab && !showPolitica && activeTab !== 'dashboards' && (
             <div
               className="animate-fade-in mb-8"
               style={{
@@ -144,7 +212,14 @@ function App() {
                     <span
                       key={index}
                       className={
-                        word === "tiempo" || word === "estacionamiento"
+                        word === "tiempo" || 
+                        word === "estacionamiento" || 
+                        word === "estadísticas" ||
+                        word === "métricas" ||
+                        word === "historial" ||
+                        word === "precios" ||
+                        word === "promociones" ||
+                        word === "real"
                           ? "text-[#FF4F79]"
                           : ""
                       }
@@ -156,7 +231,6 @@ function App() {
             </div>
           )}
 
-          {/* Título cuando está la política activa */}
           {showPolitica && (
             <div className="animate-fade-in-smooth mb-2">
               <div
@@ -198,15 +272,31 @@ function App() {
               </div>
             </div>
           )}
-
-          {/* Componente de Tabs - Siempre visible cuando no hay política */}
-          {!showPolitica && (
-            <NorthSpotTabs activeTab={activeTab} onTabClick={handleTabClick} />
-          )}
+        {!showPolitica && activeTab !== 'dashboards' && activeTab !== 'registros' && activeTab !== 'gestion-tarifas' && (
+          <NorthSpotTabs activeTab={activeTab} onTabClick={handleTabClick} />
+        )}
         </div>
-        
-        {/* Contenido de Política */}
+
+        {/* Dashboard Admin */}
+        {activeTab === 'dashboards' && !showPolitica && (
+          <DashboardAdmin onNavigate={handleTabClick} />
+        )}
+
+        {/* Otros componentes según el tab activo */}
+        {activeTab === 'registros' && !showPolitica && (
+          <Registros onNavigate={handleTabClick} />
+        )}
+        {activeTab === 'gestion-tarifas' && !showPolitica && (
+            <GestionTarifas onNavigate={handleTabClick}/>
+        )}
+
         {showPolitica && <PoliticaDatos />}
+        
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLogin={handleLogin}
+        />
       </main>
 
       <footer className="absolute bottom-0 left-0 right-0 flex flex-col md:flex-row justify-between items-center px-6 py-4 text-sm z-10">

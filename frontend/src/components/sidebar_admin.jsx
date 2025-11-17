@@ -1,17 +1,19 @@
 import React from 'react';
-import { Car, Info, DollarSign, User, BookOpen } from 'lucide-react';
-const Sidebar = ({ isOpen, onClose, onTabClick, activeTab, onPoliticaClick, showPolitica, onLoginClick }) => { 
+import { LayoutDashboard, FileText, DollarSign, LogOut, BookOpen } from 'lucide-react';
+import logoImage from "../assets/logo.png";
+
+const SidebarAdmin = ({ isOpen, onClose, onTabClick, activeTab, onPoliticaClick, showPolitica, onLogout, userName }) => { 
   const menuItems = [
-    { icon: <Car size={40} />, text: 'Disponibilidad', tabId: 'disponibilidad' },
-    { icon: <Info size={40} />, text: 'Información', tabId: 'informacion' },
-    { icon: <DollarSign size={40} />, text: 'Tarifas', tabId: 'tarifas', hasBorder: true },
-    { icon: <User size={40} />, text: 'Iniciar sesión', tabId: null, isLogin: true, hasBorder: true }, 
+    { icon: <LayoutDashboard size={40} />, text: 'Dashboards', tabId: 'dashboards' },
+    { icon: <FileText size={40} />, text: 'Registros', tabId: 'registros' },
+    { icon: <DollarSign size={40} />, text: 'Gestión de tarifas', tabId: 'gestion-tarifas', hasBorder: true },
+    { icon: <LogOut size={40} />, text: 'Cerrar sesión', tabId: null, isLogout: true, hasBorder: true }, 
     { icon: <BookOpen size={40} />, text: 'Política de datos', tabId: 'politica' }
   ];
 
   const handleItemClick = (item) => {
-    if (item.isLogin) { 
-      onLoginClick();
+    if (item.isLogout) { 
+      onLogout();
       onClose();
     } else if (item.tabId === 'politica') {
       onPoliticaClick(); 
@@ -41,8 +43,19 @@ const Sidebar = ({ isOpen, onClose, onTabClick, activeTab, onPoliticaClick, show
         `}
         style={{ backgroundColor: "#2A324B" }}
       >
+        {/* Header del Admin - Logo y Username */}
+        <div className="pt-14 px-28 flex items-center justify-end gap-3">
+          <span 
+            className="text-lg font-gasoek"
+            style={{ color: "#DDE2EC" }}
+          >
+            ({userName})
+          </span>
+
+        </div>
+
         {/* Menu */}
-        <nav className="pt-36 px-8">
+        <nav className="pt-12 px-8">
           <ul className="space-y-4">
             {menuItems.map((item, index) => {
               const isActive = activeTab === item.tabId || (item.tabId === 'politica' && showPolitica); 
@@ -58,21 +71,21 @@ const Sidebar = ({ isOpen, onClose, onTabClick, activeTab, onPoliticaClick, show
                     transitionDelay: isOpen ? `${index * 120}ms` : "0ms",
                   }}
                 >
-                <button
-                  onClick={() => handleItemClick(item)}  // ← Cambiar de handleItemClick(item.tabId)
-                  className={`
-                    flex items-center justify-end w-full
-                    gap-6 py-4 group text-right cursor-pointer 
-                  `}
-                  style={{ 
-                    color: isActive ? "#FF4F79" : "#B9E6FF"
-                  }}
-                >
-                    <span className={`transition-colors duration-300 ${item.tabId ? 'group-hover:text-[#FF4F79]' : ''}`}>
+                  <button
+                    onClick={() => handleItemClick(item)}
+                    className={`
+                      flex items-center justify-end w-full
+                      gap-6 py-4 group text-right cursor-pointer 
+                    `}
+                    style={{ 
+                      color: isActive ? "#FF4F79" : "#B9E6FF"
+                    }}
+                  >
+                    <span className={`transition-colors duration-300 ${item.tabId || item.isLogout ? 'group-hover:text-[#FF4F79]' : ''}`}>
                       {item.icon}
                     </span>
                     
-                    <span className={`text-4xl font-bold transition-colors duration-300 ${item.tabId ? 'group-hover:text-[#FF4F79]' : ''}`}>
+                    <span className={`text-4xl font-bold transition-colors duration-300 ${item.tabId || item.isLogout ? 'group-hover:text-[#FF4F79]' : ''}`}>
                       {item.text}
                     </span>
                   </button>
@@ -94,4 +107,4 @@ const Sidebar = ({ isOpen, onClose, onTabClick, activeTab, onPoliticaClick, show
   );
 };
 
-export default Sidebar;
+export default SidebarAdmin;
