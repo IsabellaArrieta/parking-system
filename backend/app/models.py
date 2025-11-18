@@ -131,3 +131,16 @@ class Pago(Base):
     # Un pago está asociado a un ticket
     ticket_id = Column(Integer, ForeignKey("tickets.idTicket"))
     ticket = relationship("Ticket")
+
+
+# -----------------------------
+#  Usuario (autenticación)
+# -----------------------------
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    nombre = Column(String)
+    rol = Column(String, default="user")

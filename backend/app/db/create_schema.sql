@@ -95,4 +95,17 @@ CREATE TABLE pagos (
         ON DELETE CASCADE
 );
 
+-- ===========================
+--  Tabla: USUARIOS
+-- ===========================
+CREATE TABLE usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    nombre TEXT,
+    rol TEXT NOT NULL DEFAULT 'user'
+);
+
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+
 CREATE INDEX idx_pagos_ticket_id ON pagos(ticket_id);
