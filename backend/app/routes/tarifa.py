@@ -12,32 +12,6 @@ router = APIRouter(tags=["Tarifa"])
 def obtener_tarifas(db: Session = Depends(get_db)):
     return db.query(Tarifa).all()
 
-# -----------------------------
-# Crear tarifa usando query params
-# -----------------------------
-@router.post("/crear")
-def crear_tarifa(
-    tipoVehiculo: str = Query(..., description="Tipo de vehículo"),
-    valorHora: float = Query(..., description="Valor por hora"),
-    valorFraccion: float = Query(..., description="Valor por fracción de hora"),
-    valorMaximo: float = Query(..., description="Valor máximo a cobrar"),
-    db: Session = Depends(get_db)
-):
-    # Verificar si ya existe tarifa para ese tipo de vehículo
-    existente = db.query(Tarifa).filter(Tarifa.tipoVehiculo == tipoVehiculo).first()
-    if existente:
-        raise HTTPException(status_code=400, detail="Ya existe una tarifa para este tipo de vehículo")
-    
-    nueva_tarifa = Tarifa(
-        tipoVehiculo=tipoVehiculo,
-        valorHora=valorHora,
-        valorFraccion=valorFraccion,
-        valorMaximo=valorMaximo
-    )
-    db.add(nueva_tarifa)
-    db.commit()
-    db.refresh(nueva_tarifa)
-    return {"message": "Tarifa creada correctamente", "tarifa": nueva_tarifa}
 
 # -----------------------------
 # Actualizar tarifa usando query params
@@ -69,16 +43,3 @@ def actualizar_tarifa(
     db.refresh(tarifa)
     return {"message": "Tarifa actualizada correctamente", "tarifa": tarifa}
 
-# -----------------------------
-# Eliminar tarifa usando query params
-# -----------------------------
-
-@router.delete("/eliminar/{idTarifa}")
-def eliminar_tarifa(idTarifa: int, db: Session = Depends(get_db)):
-    tarifa = db.query(Tarifa).filter(Tarifa.idTarifa == idTarifa).first()
-    if not tarifa:
-        raise HTTPException(status_code=404, detail="Tarifa no encontrada")
-    
-    db.delete(tarifa)
-    db.commit()
-    return {"message": "Tarifa eliminada correctamente"}

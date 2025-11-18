@@ -68,14 +68,49 @@ class Tarifa(Base):
     tickets = relationship("Ticket", back_populates="tarifa")
 
     # Método de cálculo
-    def calcular_monto(self, tiempo_minutos: float):
-        horas = tiempo_minutos / 60
-        monto = horas * self.valorHora
+    # dentro de la clase Tarifa (reemplazar método existente)
+def calcular_monto(self, tiempo_minutos: float) -> float:
+    """
+    Calcula el monto a cobrar dado el tiempo en minutos.
+    - Si tiempo_minutos <= 0 => cobra la fracción mínima.
+    - Si tiempo <= fraccion_minutos => cobra la fracción.
+    - Si tiempo > fraccion_minutos => cobra horas completas y,
+      si hay minutos restantes, añade una fracción.
+    - No excede valorMaximo.
+    """
 
-        if monto > self.valorMaximo:
-            return self.valorMaximo
+    # Evitar None y asegurar float
+    valor_hora = float(self.valorHora or 0)
+    valor_fraccion = float(self.valorFraccion or 0)
+    valor_maximo = float(self.valorMaximo or 0)
 
-        return monto
+    # Definir tamaño de la fracción en minutos (puedes cambiarlo si quieres)
+    fraccion_minutos = 15
+
+    # Casos de tiempo muy corto o nulo
+    if tiempo_minutos is None or tiempo_minutos <= 0:
+        return valor_fraccion
+
+    # Si está dentro de la fracción mínima
+    if tiempo_minutos <= fraccion_minutos:
+        return valor_fraccion
+
+    # Calcular horas completas y minutos restantes
+    horas_completas = int(tiempo_minutos // 60)
+    minutos_restantes = tiempo_minutos - (horas_completas * 60)
+
+    monto = horas_completas * valor_hora
+
+    # Si hay minutos restantes, se cobra una fracción adicional
+    if minutos_restantes > 0:
+        monto += valor_fraccion
+
+    # No superar el máximo
+    if valor_maximo and monto > valor_maximo:
+        return valor_maximo
+
+    return monto
+
 
 
 # -----------------------------

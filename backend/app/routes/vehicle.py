@@ -1,56 +1,36 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Vehiculo, Cliente
+from ..models import Vehiculo
 
 
 
 router = APIRouter(tags=["Vehiculo"])
 
+VALID_TIPOS = ["carro", "moto"]
 
 # ----------------------------------------
 # Registrar un vehículo
 # ----------------------------------------
 
 
-@router.post("/registrar")
-def registrar_vehiculo(
-    placa: str = Query(..., description="Placa del vehículo"),
-    tipo: str = Query(..., description="Tipo del vehículo"),
-    db: Session = Depends(get_db)
-):
-    # Verificar si la placa ya existe
-    existe = db.query(Vehiculo).filter(Vehiculo.placa == placa).first()
-    if existe:
-        raise HTTPException(status_code=400, detail="La placa ya está registrada.")
+@router.post("/")
+def crear_vehiculo(placa: str, tipo: str, db: Session = Depends(get_db)):
+    tipo = tipo.lower()
+
+    if tipo not in VALID_TIPOS:
+        raise HTTPException(400, detail="Tipo de vehículo inválido. Solo carro o moto.")
     
-    # Crear cliente automáticamente
-    nuevo_cliente = Cliente()  # si Cliente solo necesita ID auto
-    db.add(nuevo_cliente)
-    db.commit()
-    db.refresh(nuevo_cliente)  # ahora idCliente estará disponible
+    existente = db.query(Vehiculo).filter(Vehiculo.placa == placa).first()
+    if existente:
+        raise HTTPException(400, detail="Ya existe un vehículo con esta placa")
 
-    # Crear vehículo asignando el cliente automáticamente
-    nuevo_vehiculo = Vehiculo(
-        placa=placa,
-        tipo=tipo,
-        cliente_id=nuevo_cliente.idCliente  # 🔑 usar idCliente, no id
-    )
-    db.add(nuevo_vehiculo)
+    vehiculo = Vehiculo(placa=placa, tipo=tipo)
+    db.add(vehiculo)
     db.commit()
-    db.refresh(nuevo_vehiculo)
+    db.refresh(vehiculo)
 
-    return {
-        "message": "Vehículo registrado correctamente",
-        "vehiculo": {
-            "placa": nuevo_vehiculo.placa,
-            "tipo": nuevo_vehiculo.tipo,
-            "cliente_id": nuevo_vehiculo.cliente_id
-        },
-        "cliente": {
-            "idCliente": nuevo_cliente.idCliente
-        }
-    }
+    return {"message": "Vehículo registrado", "vehiculo": vehiculo}
 
 # ----------------------------------------
 # Listar todos los vehículos
