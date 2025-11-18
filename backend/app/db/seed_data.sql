@@ -1,0 +1,12 @@
+-- CUPOS DE PRUEBA (20 cupos por piso)
+INSERT INTO cupos (piso, zona, estado)
+SELECT p, 'A' || i, 'libre'
+FROM (SELECT 1 AS p UNION SELECT 2 UNION SELECT 3),
+     (SELECT 1 AS i UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+      UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10);
+
+-- TARIFAS DE PRUEBA
+INSERT INTO tarifas (tipoVehiculo, valorHora, valorFraccion, valorMaximo)
+VALUES
+('carro', 3000, 1000, 15000),
+('moto', 1500, 500, 7000);
