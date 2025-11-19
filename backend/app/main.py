@@ -36,7 +36,7 @@ if not os.path.exists(DB_PATH):
         from passlib.context import CryptContext
         from .models import Usuario
 
-        pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        pwd_ctx = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
         admin_email = "admin@plazanorte.co"
         admin_password = "Admin123$"
         db = SessionLocal()

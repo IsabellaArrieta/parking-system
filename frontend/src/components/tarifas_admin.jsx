@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { tarifaAPI } from "../services/apiService";
 
-export default function TarifasComponent() {
+/**
+ * TarifasAdmin: Solo para administradores
+ * Muestra tabla CRUD para gestionar tarifas del parqueadero
+ */
+export default function TarifasAdmin() {
   const [tarifas, setTarifas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,6 +20,9 @@ export default function TarifasComponent() {
 
   useEffect(() => {
     fetchTarifas();
+    // Refrescar cada 10 segundos para ver cambios en tiempo real
+    const interval = setInterval(fetchTarifas, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchTarifas = async () => {
@@ -59,7 +66,8 @@ export default function TarifasComponent() {
           formData.valorMaximo
         );
       }
-      fetchTarifas();
+      // Refrescar inmediatamente
+      await fetchTarifas();
       setFormData({
         tipoVehiculo: "",
         valorHora: "",
@@ -88,7 +96,7 @@ export default function TarifasComponent() {
     if (window.confirm("¿Deseas eliminar esta tarifa?")) {
       try {
         await tarifaAPI.delete(idTarifa);
-        fetchTarifas();
+        await fetchTarifas();
       } catch (err) {
         setError(err.message);
       }
@@ -106,11 +114,11 @@ export default function TarifasComponent() {
     });
   };
 
-  if (loading) return <div className="p-6">Cargando tarifas...</div>;
+  if (loading && tarifas.length === 0) return <div className="p-6">Cargando tarifas...</div>;
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4">Gestión de NNTarifas</h2>
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-6xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Gestión de Tarifas</h2>
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
@@ -132,7 +140,7 @@ export default function TarifasComponent() {
             <input
               type="text"
               name="tipoVehiculo"
-              placeholder="Tipo de Vehículo (ej: Auto, Moto)"
+              placeholder="Tipo de Vehículo (ej: carro, moto)"
               value={formData.tipoVehiculo}
               onChange={handleInputChange}
               required

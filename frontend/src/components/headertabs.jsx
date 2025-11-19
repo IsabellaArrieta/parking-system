@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Car, 
   DollarSign, 
@@ -11,6 +11,7 @@ import {
   Plus,
   Calendar
 } from 'lucide-react';
+import { tarifaAPI } from '../services/apiService';
 
 // Componente de Carta Reutilizable
 const Card = ({ children, className = '' }) => (
@@ -172,7 +173,7 @@ const DisponibilidadTab = () => {
   );
 };
 // TAB 2: Tarifas (Calculadora mejorada)
-const TarifasTab = () => {
+const TarifasTab = ({ tarifas }) => {
   const [fechaEntrada, setFechaEntrada] = useState('');
   const [horaEntrada, setHoraEntrada] = useState('');
   const [fechaSalida, setFechaSalida] = useState('');
@@ -202,26 +203,38 @@ const TarifasTab = () => {
     let total = 0;
     let desglose = [];
     
-    // Tarifas según tipo de vehículo
-    const tarifas = tipoVehiculo === 'carro' 
-      ? { primeraHora: 6000, horaAdicional: 3000, diaCompleto: 25000 }
-      : { primeraHora: 3000, horaAdicional: 2000, diaCompleto: 10000 };
+    // Obtener tarifas desde backend (prop)
+    const tarifaObj = (tarifas || []).find(
+      (t) => String(t.tipoVehiculo).toLowerCase() === tipoVehiculo
+    );
+
+    if (!tarifaObj) {
+      alert('No hay tarifas configuradas para el tipo de vehículo seleccionado');
+      return;
+    }
+
+    // Mapear campos del backend a los nombres usados en la calculadora
+    const tarifaValues = {
+      primeraHora: Number(tarifaObj.valorHora) || 0,
+      horaAdicional: Number(tarifaObj.valorFraccion) || 0,
+      diaCompleto: Number(tarifaObj.valorMaximo) || 0,
+    };
     
     // Calcular días completos
     if (dias > 0) {
-      total += dias * tarifas.diaCompleto;
-      desglose.push(`${dias} día(s) completo(s): $${(dias * tarifas.diaCompleto).toLocaleString('es-CO')}`);
+      total += dias * tarifaValues.diaCompleto;
+      desglose.push(`${dias} día(s) completo(s): $${(dias * tarifaValues.diaCompleto).toLocaleString('es-CO')}`);
     }
     
     // Calcular horas restantes
     if (horasRestantes > 0) {
       // Primera hora
-      total += tarifas.primeraHora;
-      desglose.push(`Primera hora: $${tarifas.primeraHora.toLocaleString('es-CO')}`);
+      total += tarifaValues.primeraHora;
+      desglose.push(`Primera hora: $${tarifaValues.primeraHora.toLocaleString('es-CO')}`);
       
       // Horas adicionales
       if (horasRestantes > 1) {
-        const costoAdicionales = (horasRestantes - 1) * tarifas.horaAdicional;
+        const costoAdicionales = (horasRestantes - 1) * tarifaValues.horaAdicional;
         total += costoAdicionales;
         desglose.push(`${horasRestantes - 1} hora(s) adicional(es): $${costoAdicionales.toLocaleString('es-CO')}`);
       }
@@ -438,27 +451,31 @@ const TarifasTab = () => {
   );
 };
 // TAB 3: Información
-const InformacionTab = () => {
-  const tarifas = [
+const InformacionTab = ({ tarifas }) => {
+
+  const carro = (tarifas || []).find((t) => String(t.tipoVehiculo).toLowerCase() === 'carro');
+  const moto = (tarifas || []).find((t) => String(t.tipoVehiculo).toLowerCase() === 'moto');
+
+  const tarjetas = [
     {
       titulo: '1',
       tipo: 'number',
-      carro: '6.000',
-      moto: '3.000',
+      carro: carro ? Number(carro.valorHora).toLocaleString('es-CO') : '—',
+      moto: moto ? Number(moto.valorHora).toLocaleString('es-CO') : '—',
       subtitulo: 'Primera hora'
     },
     {
       titulo: '+',
       tipo: 'plus',
-      carro: '3.000',
-      moto: '2.000',
+      carro: carro ? Number(carro.valorFraccion).toLocaleString('es-CO') : '—',
+      moto: moto ? Number(moto.valorFraccion).toLocaleString('es-CO') : '—',
       subtitulo: 'Horas adicionales'
     },
     {
       titulo: 'sun',
       tipo: 'sun',
-      carro: '25.000',
-      moto: '10.000',
+      carro: carro ? Number(carro.valorMaximo).toLocaleString('es-CO') : '—',
+      moto: moto ? Number(moto.valorMaximo).toLocaleString('es-CO') : '—',
       subtitulo: 'Tarifa día completo'
     }
   ];
@@ -467,7 +484,7 @@ const InformacionTab = () => {
     <div className="flex flex-col gap-3 items-center animate-fade-in w-full max-w-7xl mx-auto">
       {/* Cartas de Tarifas */}
       <div className="flex gap-6 justify-center items-stretch w-full">
-        {tarifas.map((tarifa, index) => (
+        {tarjetas.map((tarifa, index) => (
           <Card 
             key={index} 
             className="flex-1 flex flex-col items-center justify-between p-5"
@@ -509,7 +526,7 @@ const InformacionTab = () => {
                     Carro
                   </span>
                 </div>
-                <span 
+                  <span 
                   className="text-xl font-bold" 
                   style={{ fontFamily: 'Geist, sans-serif', color: '#2A324B' }}
                 >
@@ -558,12 +575,6 @@ const InformacionTab = () => {
             className="text-sm font-medium" 
             style={{ fontFamily: 'Geist, sans-serif', color: '#767B91' }}
           >
-            Isabella Sofía Arrieta Guardo
-          </p>
-          <p 
-            className="text-sm font-medium" 
-            style={{ fontFamily: 'Geist, sans-serif', color: '#767B91' }}
-          >
             José Fernando González Ortiz
           </p>
           <p 
@@ -591,6 +602,36 @@ const NorthSpotTabs = ({ activeTab, onTabClick }) => {
     { id: 'tarifas', label: 'Tarifas', icon: DollarSign },
     { id: 'informacion', label: 'Información', icon: Info }
   ];
+
+  const [tarifas, setTarifas] = useState([]);
+  const [loadingTarifas, setLoadingTarifas] = useState(true);
+  const [tarifaError, setTarifaError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchTarifas = async () => {
+      try {
+        setLoadingTarifas(true);
+        const data = await tarifaAPI.getAll();
+        if (mounted) {
+          setTarifas(data || []);
+          setTarifaError(null);
+        }
+      } catch (err) {
+        if (mounted) setTarifaError(err.message || String(err));
+      } finally {
+        if (mounted) setLoadingTarifas(false);
+      }
+    };
+
+    fetchTarifas();
+    // refresh tarifas periodically
+    const interval = setInterval(fetchTarifas, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
  
   return (
     <div
@@ -633,8 +674,8 @@ const NorthSpotTabs = ({ activeTab, onTabClick }) => {
       {/* Contenido de tabs con fade in */}
       <div className="tab-content">
         {activeTab === 'disponibilidad' && <DisponibilidadTab />}
-        {activeTab === 'tarifas' && <TarifasTab />}
-        {activeTab === 'informacion' && <InformacionTab />}
+        {activeTab === 'tarifas' && <TarifasTab tarifas={tarifas} />}
+        {activeTab === 'informacion' && <InformacionTab tarifas={tarifas} />}
       </div>
 
       <style>{`

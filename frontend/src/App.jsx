@@ -1,5 +1,5 @@
 import { BookOpen, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logoImage from "./assets/logo.png";
 import titleImage from "./assets/title.png";
 import HamburgerButton from "./components/menubutton";
@@ -14,6 +14,8 @@ import Registros from './components/registers';
 import ParkingAvailability from './components/parkingavailability';
 import TarifasComponent from './components/tarifas';
 import VehicleRegistration from './components/vehicleregistration';
+import TarifasAdmin from './components/tarifas_admin';
+
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
@@ -21,6 +23,15 @@ function App() {
   const [showPolitica, setShowPolitica] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userName, setUserName] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+
+  // Leer rol de localStorage al cargar
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    if (role) {
+      setUserRole(role);
+    }
+  }, []);
 
   const handleTabClick = (tabId) => {
     setShowPolitica(false);
@@ -35,14 +46,19 @@ function App() {
 
   const handleLogin = (name) => {
     setUserName(name);
+    const role = localStorage.getItem('role');
+    setUserRole(role);
     setShowLoginModal(false);
   };
 
   const handleLogout = () => {
     setUserName(null);
+    setUserRole(null);
     setActiveTab(null);
     setShowPolitica(false);
     setIsMenuOpen(false);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('role');
   };
 
   const handlePoliticaClick = () => {
@@ -62,7 +78,7 @@ function App() {
       case "dashboards":
         return "Dashboard Administrativo";
       case "registros":
-        return "Registro de Vehículos";
+        return "";
       case "gestion-tarifas":
         return "Gestión de Tarifas";
       case "disponibilidad-admin":
@@ -91,7 +107,7 @@ function App() {
     }
   };
 
-  const isAdmin = userName === "Admin";
+  const isAdmin = userRole === "admin";
 
   return (
     <div
@@ -297,19 +313,14 @@ function App() {
           <ParkingAvailability />
         )}
 
-        {/* Tarifas - Usuario */}
-        {activeTab === 'tarifas' && !showPolitica && (
-          <TarifasComponent />
-        )}
-
-        {/* Registro de Vehículos */}
-        {activeTab === 'registros' && !showPolitica && (
-          <VehicleRegistration />
-        )}
-
         {/* Gestión de Tarifas - Admin */}
         {activeTab === 'gestion-tarifas' && !showPolitica && (
-            <TarifasComponent />
+            <TarifasAdmin />
+        )}
+
+        {/* Registro de Vehículos - Admin */}
+        {activeTab === 'registros' && !showPolitica && (
+          <Registros/>
         )}
 
         {showPolitica && <PoliticaDatos />}

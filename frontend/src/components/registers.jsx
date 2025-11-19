@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Calendar, ArrowUpDown, RefreshCw, Download, Filter, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Calendar, ArrowUpDown, RefreshCw, Download, Filter, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { vehicleAPI } from '../services/apiService';
 
 
 const Registros = ({ onNavigate }) => {
@@ -13,57 +14,34 @@ const Registros = ({ onNavigate }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 8;
 
-  // Datos de ejemplo - en producción vendrían de una API
-  const registrosData = [
-    { id: 1, hora: '08:15:23', placa: 'ABC-123', nivel: 'P1', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 2, hora: '08:30:45', placa: 'XYZ-789', nivel: 'P2', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 3, hora: '09:20:12', placa: 'DEF-456', nivel: 'P1', tipo: 'Entrada', metodo: 'Manual', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 4, hora: '10:45:30', placa: 'ABC-123', nivel: 'P1', tipo: 'Salida', metodo: 'Lectura automática', tiempo: '2h 30min', valor: '$9,500', estado: 'Pagado' },
-    { id: 5, hora: '11:15:50', placa: 'GHI-012', nivel: 'P3', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 6, hora: '12:00:00', placa: 'JKL-345', nivel: 'P2', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 7, hora: '12:30:20', placa: 'XYZ-789', nivel: 'P2', tipo: 'Salida', metodo: 'Lectura automática', tiempo: '4h 00min', valor: '$13,000', estado: 'Pagado' },
-    { id: 8, hora: '13:45:10', placa: 'MNO-678', nivel: 'P1', tipo: 'Entrada', metodo: 'Manual', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 9, hora: '14:20:35', placa: 'PQR-901', nivel: 'P3', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 10, hora: '15:10:48', placa: 'DEF-456', nivel: 'P1', tipo: 'Salida', metodo: 'Manual', tiempo: '5h 50min', valor: '$17,500', estado: 'Pagado' },
-    { id: 11, hora: '15:45:22', placa: 'STU-234', nivel: 'P2', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 12, hora: '16:30:15', placa: 'VWX-567', nivel: 'P1', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 13, hora: '17:15:40', placa: 'GHI-012', nivel: 'P3', tipo: 'Salida', metodo: 'Lectura automática', tiempo: '6h 00min', valor: '$18,000', estado: 'Pagado' },
-    { id: 14, hora: '18:00:05', placa: 'YZA-890', nivel: 'P2', tipo: 'Entrada', metodo: 'Manual', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 15, hora: '18:45:30', placa: 'JKL-345', nivel: 'P2', tipo: 'Salida', metodo: 'Lectura automática', tiempo: '6h 45min', valor: '$19,500', estado: 'Pendiente' },
-    { id: 16, hora: '19:20:12', placa: 'BCD-123', nivel: 'P1', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 17, hora: '19:50:45', placa: 'MNO-678', nivel: 'P1', tipo: 'Salida', metodo: 'Manual', tiempo: '6h 05min', valor: '$18,250', estado: 'Pagado' },
-    { id: 18, hora: '20:15:30', placa: 'EFG-456', nivel: 'P3', tipo: 'Entrada', metodo: 'Lectura automática', tiempo: '-', valor: '-', estado: 'Activo' },
-    { id: 19, hora: '20:45:18', placa: 'PQR-901', nivel: 'P3', tipo: 'Salida', metodo: 'Lectura automática', tiempo: '6h 25min', valor: '$18,750', estado: 'Pagado' },
-    { id: 20, hora: '21:10:50', placa: 'HIJ-789', nivel: 'P2', tipo: 'Entrada', metodo: 'Manual', tiempo: '-', valor: '-', estado: 'Activo' },
-  ];
+  // Vehicles state (replaces static registros)
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({ placa: '', tipo: '' });
 
-  // Filtrar y ordenar registros
+  // Filtrar y ordenar vehículos
   const registrosFiltrados = useMemo(() => {
-    let filtered = [...registrosData];
+    let filtered = [...vehicles];
 
-    // Filtro por placa
     if (searchPlaca) {
-      filtered = filtered.filter(r => 
-        r.placa.toLowerCase().includes(searchPlaca.toLowerCase())
-      );
+      filtered = filtered.filter(r => r.placa && r.placa.toLowerCase().includes(searchPlaca.toLowerCase()));
     }
 
-    // Ordenamiento por hora
+    // Ordenar por placa por defecto
     filtered.sort((a, b) => {
-      const timeA = a.hora.split(':').reduce((acc, time) => (60 * acc) + +time, 0);
-      const timeB = b.hora.split(':').reduce((acc, time) => (60 * acc) + +time, 0);
-      return ordenamiento === 'asc' ? timeA - timeB : timeB - timeA;
+      const aKey = (a.placa || '').toLowerCase();
+      const bKey = (b.placa || '').toLowerCase();
+      return ordenamiento === 'asc' ? aKey.localeCompare(bKey) : bKey.localeCompare(aKey);
     });
 
     return filtered;
-  }, [searchPlaca, fechaInicio, fechaFin, ordenamiento]);
+  }, [searchPlaca, fechaInicio, fechaFin, ordenamiento, vehicles]);
 
   // Paginación
-  const totalPages = Math.ceil(registrosFiltrados.length / itemsPerPage);
-  const registrosPaginados = registrosFiltrados.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.max(1, Math.ceil(registrosFiltrados.length / itemsPerPage));
+  const registrosPaginados = registrosFiltrados.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -72,42 +50,82 @@ const Registros = ({ onNavigate }) => {
     }, 1000);
   };
 
+  // Vehicle API interactions
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true);
+      const data = await vehicleAPI.getAll();
+      setVehicles(data || []);
+      setError(null);
+    } catch (err) {
+      setError(err.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: name === 'placa' ? value.toUpperCase() : value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await vehicleAPI.register(formData.placa, formData.tipo);
+      setFormData({ placa: '', tipo: '' });
+      setShowForm(false);
+      setError(null);
+      await fetchVehicles();
+    } catch (err) {
+      setError(err.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (placa) => {
+    if (!window.confirm(`¿Deseas eliminar el vehículo ${placa}?`)) return;
+    try {
+      await vehicleAPI.delete(placa);
+      await fetchVehicles();
+    } catch (err) {
+      setError(err.message || String(err));
+    }
+  };
+
   const handleExport = () => {
-  const doc = new jsPDF();
+    const doc = new jsPDF();
 
-  // Título
-  doc.setFontSize(18);
-  doc.setTextColor(42, 50, 75);
-  doc.text('Registros de Parqueadero - NorthSpot', 14, 20);
+    // Título
+    doc.setFontSize(18);
+    doc.setTextColor(42, 50, 75);
+    doc.text('Vehículos Registrados - NorthSpot', 14, 20);
 
-  doc.setFontSize(10);
-  doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 28);
-  doc.text(`Total de registros: ${registrosFiltrados.length}`, 14, 34);
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 28);
+    doc.text(`Total de vehículos: ${registrosFiltrados.length}`, 14, 34);
 
-  // Tabla
-  const tableData = registrosFiltrados.map(r => [
-    r.hora,
-    r.placa,
-    r.nivel,
-    r.tipo,
-    r.metodo,
-    r.tiempo,
-    r.valor,
-    r.estado
-  ]);
+    // Tabla
+    const tableData = registrosFiltrados.map(r => [r.placa, r.tipo, r.cliente_id || '-']);
 
-  autoTable(doc, {   // <-- nota el uso de autoTable(doc, {...})
-    startY: 40,
-    head: [['Hora', 'Placa', 'Nivel', 'Tipo', 'Método', 'Tiempo', 'Valor', 'Estado']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: { fillColor: [42, 50, 75], textColor: [185, 230, 255] },
-    alternateRowStyles: { fillColor: [221, 226, 236] },
-    styles: { fontSize: 8 }
-  });
+    autoTable(doc, {
+      startY: 40,
+      head: [['Placa', 'Tipo', 'Cliente ID']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [42, 50, 75], textColor: [185, 230, 255] },
+      alternateRowStyles: { fillColor: [221, 226, 236] },
+      styles: { fontSize: 8 }
+    });
 
-  doc.save(`Registros_NorthSpot_${new Date().toLocaleDateString()}.pdf`);
-};
+    doc.save(`Vehiculos_NorthSpot_${new Date().toLocaleDateString()}.pdf`);
+  };
 
 
   const toggleOrdenamiento = () => {
@@ -242,16 +260,42 @@ const Registros = ({ onNavigate }) => {
               Refrescar
             </button>
 
-            <button
-              onClick={handleExport}
-              className="group flex items-center gap-2 px-4 py-2 rounded-full font-geist text-xs font-medium shadow-md hover:scale-105 transition-all duration-300"
-              style={{ backgroundColor: '#FF4F79', color: '#DDE2EC' }}
-            >
+            <button onClick={() => setShowForm(!showForm)} className="group flex items-center gap-2 px-4 py-2 rounded-full font-geist text-xs font-medium shadow-md hover:scale-105 transition-all duration-300" style={{ backgroundColor: '#2A324B', color: '#B9E6FF' }}>
+              <Plus size={14} /> {showForm ? 'Cancelar' : 'Registrar vehículo'}
+            </button>
+            <button onClick={handleExport} className="group flex items-center gap-2 px-4 py-2 rounded-full font-geist text-xs font-medium shadow-md hover:scale-105 transition-all duration-300" style={{ backgroundColor: '#FF4F79', color: '#DDE2EC' }}>
               <Download size={14} className="group-hover:translate-y-1 transition-transform duration-300" />
               Exportar PDF
             </button>
           </div>
         </div>
+
+        {/* Formulario de registro (toggle) */}
+        {showForm && (
+          <form onSubmit={handleSubmit} className="mb-6 p-4 bg-white rounded border border-gray-200">
+            {error && <div className="mb-3 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Placa</label>
+                <input type="text" name="placa" value={formData.placa} onChange={handleInputChange} required className="w-full p-2 border rounded uppercase" placeholder="ABC-123" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Tipo</label>
+                <select name="tipo" value={formData.tipo} onChange={handleInputChange} required className="w-full p-2 border rounded">
+                  <option value="">Selecciona un tipo</option>
+                  <option value="Auto">Auto</option>
+                  <option value="Moto">Moto</option>
+                  <option value="Camioneta">Camioneta</option>
+                  <option value="Bicicleta">Bicicleta</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">{loading ? 'Registrando...' : 'Registrar'}</button>
+              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">Cancelar</button>
+            </div>
+          </form>
+        )}
 
         {/* Tabla de registros */}
         <div className="rounded-3xl shadow-lg overflow-hidden transition-all duration-500" style={{ backgroundColor: '#DDE2EC' }}>
@@ -259,62 +303,30 @@ const Registros = ({ onNavigate }) => {
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: '#2A324B' }}>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Hora</th>
                   <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Placa</th>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Nivel</th>
                   <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Tipo</th>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Método</th>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Tiempo</th>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Valor</th>
-                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Estado</th>
+                  <th className="px-4 py-4 text-left font-geist text-sm" style={{ color: '#B9E6FF' }}>Cliente ID</th>
+                  <th className="px-4 py-4 text-right font-geist text-sm" style={{ color: '#B9E6FF' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {registrosPaginados.map((registro, index) => (
-                  <tr 
-                    key={registro.id}
-                    className="border-b transition-all duration-300 hover:bg-opacity-50"
-                    style={{ 
-                      borderColor: '#767B91',
-                      backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(118, 123, 145, 0.1)'
-                    }}
-                  >
+                  <tr key={registro.placa || index} className="border-b transition-all duration-300 hover:bg-opacity-50" style={{ borderColor: '#767B91', backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(118, 123, 145, 0.1)' }}>
                     <td className="px-4 py-4 font-geist text-sm font-semibold" style={{ color: '#2A324B' }}>
-                      {registro.hora}
-                    </td>
-                    <td className="px-4 py-4 font-gasoek text-sm" style={{ color: '#FF4F79' }}>
                       {registro.placa}
                     </td>
-                    <td className="px-4 py-4 font-geist text-sm" style={{ color: '#767B91' }}>
-                      {registro.nivel}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span 
-                        className="px-3 py-1 rounded-full font-geist text-xs font-medium"
-                        style={{ 
-                          backgroundColor: registro.tipo === 'Entrada' ? '#B9E6FF' : '#FF4F79',
-                          color: registro.tipo === 'Entrada' ? '#2A324B' : '#DDE2EC'
-                        }}
-                      >
-                        {registro.tipo}
-                      </span>
+                    <td className="px-4 py-4 font-gasoek text-sm" style={{ color: '#FF4F79' }}>
+                      {registro.tipo}
                     </td>
                     <td className="px-4 py-4 font-geist text-sm" style={{ color: '#767B91' }}>
-                      {registro.metodo}
+                      {registro.cliente_id || '-'}
                     </td>
-                    <td className="px-4 py-4 font-geist text-sm" style={{ color: '#767B91' }}>
-                      {registro.tiempo}
-                    </td>
-                    <td className="px-4 py-4 font-geist text-sm font-semibold" style={{ color: '#2A324B' }}>
-                      {registro.valor}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span 
-                        className="px-3 py-1 rounded-full font-geist text-xs font-medium"
-                        style={getEstadoBadgeStyle(registro.estado)}
-                      >
-                        {registro.estado}
-                      </span>
+                    <td className="px-4 py-4 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <button onClick={() => handleDelete(registro.placa)} className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 inline-flex items-center gap-1">
+                          <Trash2 size={14} /> Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
